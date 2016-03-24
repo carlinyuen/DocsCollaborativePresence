@@ -9,6 +9,7 @@ $(function()
     , CLASS_KIX_DOCUMENT_ZOOM = 'kix-zoomdocumentplugin-outer'
     , CLASS_KIX_DOCOS_PRESENCE = 'docos-user-presence'
     , CLASS_KIX_DOCOS_CONTAINER = 'docos-anchoreddocoview'
+    , CLASS_KIX_DOCOS_DRAFT = 'docos-anchoreddocoview-draft'
     , CLASS_KIX_DOCOS_ACTIVE = 'docos-docoview-active'
   	, CLASS_PRESENCE_MARKER = 'dcp-scrollbar-marker'
   	, CLASS_MARKER_REMOVAL = 'dcp-remove-marker'
@@ -20,6 +21,7 @@ $(function()
     , OPACITY_MARKER = 0.33
     , OPACITY_MARKER_ACTIVE = 0.66
     , docosTracker = []
+    , markerPropsTracker = {}
 	;
 
   // Initialize
@@ -40,6 +42,11 @@ $(function()
   function init()
   {
     debugLog('Init Docs Collaborative Presence v1.0');
+
+    // Add filter function to only select items without parents of a certain class
+    $.expr[':'].parents = function(a,i,m){
+      return jQuery(a).parents(m[3]).length < 1;
+    };
 
     // Doesn't work -- can't seem to track when inserted
     // $(document).on('DOMNodeInserted', function(e)
@@ -62,48 +69,53 @@ $(function()
   // Search for docos
   function sweepDocos()
   {
-    // Fetch docos from document & page properties
-    var $docos = $(document).find('div.' + CLASS_KIX_DOCOS_PRESENCE);
+    // Fetch docos from document, properties from page
+    var $docos = $(document).find('div.' + CLASS_KIX_DOCOS_PRESENCE)
+      .filter(':parents(.' + CLASS_KIX_DOCOS_DRAFT + ')');
     var props = getPageProperties();
 
-    // Store docos into tracker
-    $.each($docos, function(index, value)
+    // Don't compute more than necessary
+    if ($docos.length != docosTracker.length)
     {
-      var $doco = $(value);
-      if (docosTracker.includes(value)) {
-        // Do nothing
-      } else if ($doco.attr('id')) {
-        docosTracker.push(value);   // Shouldn't happen, but doco has been processed before and isn't tracked
-      }
-      else  // Doco hasn't been tracked
+      // Store docos into tracker and create indicators
+      $.each($docos, function(index, value)
       {
-        var ID = uniqueID();
-        $doco.attr('id', PREFIX_ID_DOCO + ID);
-        var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
-        drawDocoMarker(
-          calculateMarkerProperties(
-            $container.css('top').replace("px", ""),
-            $container.outerHeight(),
-            props
-          )
-          , $doco.css('background-color')
-          , PREFIX_ID_MARKER + ID);
-        docosTracker.push(value);
-      }
-    });
+        var $doco = $(value);
+        if (docosTracker.includes(value)) {
+          // Do nothing
+        } else if ($doco.attr('id')) {
+          docosTracker.push(value);   // Shouldn't happen, but doco has been processed before and isn't tracked
+        }
+        else  // Doco hasn't been tracked
+        {
+          var ID = uniqueID();
+          $doco.attr('id', PREFIX_ID_DOCO + ID);
+          var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
+          drawDocoMarker(
+            calculateMarkerProperties(
+              $container.css('top').replace("px", ""),
+              $container.outerHeight(),
+              props
+            )
+            , $doco.css('background-color')
+            , PREFIX_ID_MARKER + ID);
+          docosTracker.push(value);
+        }
+      });
 
-    // Need to get rid of removed docos
-    docosTracker = $.grep(docosTracker, function(value)
-    {
-      var id = $(value).attr('id');
-      if ($('body').find('#' + id).length <= 0)
+      // Need to get rid of removed docos
+      docosTracker = $.grep(docosTracker, function(value)
       {
-        // debugLog('remove:', value);
-        removeDocoMarker(PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length));
-        return false;
-      }
-      return true;
-    });
+        var id = $(value).attr('id');
+        if ($('body').find('#' + id).length <= 0)
+        {
+          // debugLog('remove:', value);
+          removeDocoMarker(PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length));
+          return false;
+        }
+        return true;
+      });
+    }
 
     redrawDocoMarkers(props);
   }
@@ -120,23 +132,28 @@ $(function()
     {
       // Setup
       var $doco = $(value);
-      var id = $doco.attr('id');
+      var id = $doco.attr('id').substr(PREFIX_ID_DOCO.length);
       var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
 
-      // Calculate position
-      var markerProps = calculateMarkerProperties(
-        $container.css('top').replace("px", ""),
-        $container.outerHeight(),
-        props
-      );
-      // Mark as active if doco is active
+      // Only calculate if needed
+      var top = $container.css('top').replace("px", "");
+      var height = $container.outerHeight();
+      var markerProps = markerPropsTracker[id];
+      if (markerProps && markerProps.top == top && markerProps.height == height) {
+        return;
+      } else {  // Store latest state
+        markerPropsTracker[id] = {top: top, height: height};
+      }
+
+      // Calculate position and mark as active if doco is active
+      markerProps = calculateMarkerProperties(top, height, props);
       markerProps.active = ($container.hasClass(CLASS_KIX_DOCOS_ACTIVE));
 
       // Redraw the marker
       drawDocoMarker(
         markerProps,
         $doco.css('background-color'),
-        PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length)
+        PREFIX_ID_MARKER + id
       );
     });
   }
