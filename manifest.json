@@ -11,7 +11,7 @@
 	}
 	, "default_locale": "en"
 	, "content_scripts": [{
-		"matches": [ "*://docs.google.com/*" ]
+		"matches": [ "*://docs.google.com/document/*" ]
 		, "css": [ "css/content_script.css" ]
 		, "js": [
 			"js/third_party/jquery-2.1.0.min.js"
@@ -20,5 +20,5 @@
 		]
 		, "run_at": "document_idle"
 	}]
-	, "permissions": [ "*://docs.google.com/*" ]
+	, "permissions": [ "*://docs.google.com/document/*" ]
 }
