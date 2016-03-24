@@ -14,8 +14,7 @@ $(function()
     , PREFIX_ID_DOCO = 'dcp-'
     , PREFIX_ID_MARKER = 'dcp-marker-'
     , INTERVAL_DOCOS_SWEEPER = 200
-  	, cursorObserver = null
-  	, positionObservers = []
+    , TIME_ANIMATION_SPEED = 200
     , docosTracker = []
 	;
 
@@ -36,7 +35,7 @@ $(function()
   // Initialize the extension script
   function init()
   {
-    debugLog('Init Docs Collaborative Presence v1.2');
+    debugLog('Init Docs Collaborative Presence v1.0');
 
     // Doesn't work -- can't seem to track when inserted
     // $(document).on('DOMNodeInserted', function(e)
@@ -49,53 +48,6 @@ $(function()
 
     // Look for docos regularly
     setInterval(sweepDocos, INTERVAL_DOCOS_SWEEPER);
-
-    /*
-    // Listen for new cursors being added
-    //  Source: http://gabrieleromanato.name/jquery-detecting-new-elements-with-the-mutationobserver-object/
-    var target = $("body")[0];
-
-    // Create an observer instance
-    cursorObserver = new MutationObserver(function (mutations) {
-      mutations.forEach(function (mutation)
-      {
-        // Check inserted nodes
-        var newNodes = mutation.addedNodes; // DOM NodeList
-        if (newNodes !== null) { // If there are new nodes added
-          var $nodes = $(newNodes); // jQuery set
-          $nodes.each(function() {
-            var $node = $(this);
-            if( $node.hasClass(CLASS_KIX_COLLABORATIVE_CURSOR) ) {
-              addPositionObserver($node);
-            }
-          });
-        }
-
-        // Check removed nodes
-        var removedNodes = mutation.removedNodes;
-        if (removedNodes !== null) {
-          $nodes = $(removedNodes);
-          $nodes.each(function() {
-            var $node = $(this);
-            if( $node.hasClass(CLASS_KIX_COLLABORATIVE_CURSOR) ) {
-              removePositionObserver($node);
-            }
-
-          });
-        }
-      });
-    });
-
-  	// Configuration of the observer:
-  	var config = {
-  		attributes: true,
-  		childList: true,
-  		characterData: true
-  	};
-
-  	// Pass in the target node, as well as the observer options
-  	cursorObserver.observe(target, config);
-    */
   }
 
   // Generates unique ID
@@ -137,12 +89,11 @@ $(function()
       var id = $(value).attr('id');
       if ($('body').find('#' + id).length <= 0)
       {
+        debugLog('remove:', value);
         removeDocoMarker(id.substr(PREFIX_ID_DOCO.length));
         return false;
       }
       return true;
-      // return ($(value).parents('.' + CLASS_KIX_DOCOS_CONTAINER)
-        // .css('top').replace('px', '') > 0);
     });
 
     redrawDocoMarkers();
@@ -185,19 +136,21 @@ $(function()
     if (id) {
       $marker = $('body').find('#' + PREFIX_ID_MARKER + id);
     }
-    if ($marker.length <= 0) {
+    if ($marker.length <= 0)
+    {
       $marker = createDocoMarker(id);
       newlyCreated = true;
     }
 
     // Calculate vertical position
     var documentHeight = $('div.' + CLASS_KIX_DOCUMENT_ZOOM).height();
-    var headerBarHeight = $('#' + ID_DOCS_HEADER_CONTROLS).height();
+    var headerHeight = $('#' + ID_DOCS_HEADER_CONTROLS).height();
     var pageHeight = $('body').height();
-    var scrollbarHeightRatio = 1 - (headerBarHeight / pageHeight);
+    var scrollbarHeight = pageHeight - headerHeight;
     var css = {   // Set position and height relative to page
-      top: Math.floor((top / documentHeight) * 100 * scrollbarHeightRatio) + '%',
-      height: Math.floor((height / documentHeight) * 100 * scrollbarHeightRatio) + '%',
+      top: ((headerHeight / pageHeight) * 100)   // Account for chrome
+        + (((top / documentHeight) * scrollbarHeight) / pageHeight * 100) + '%',
+      height: (((height / documentHeight) * scrollbarHeight) / pageHeight * 100) + '%',
       opacity: 0.5,
     };
     // debugLog("css:", css);
@@ -207,84 +160,29 @@ $(function()
     {
       css.background = color;  // Copy node color style
       $marker.css(css);
-      $('body').append($marker).slideDown('fast');
+      $('body').append($marker).slideDown(TIME_ANIMATION_SPEED);
     }
     else {  // Otherwise only animate height changes
-      $marker.animate(css, 'fast');
+      $marker.stop(true).animate(css, TIME_ANIMATION_SPEED);
     }
   }
 
   // Clear all doco indicators
-  function clearDocoMarkers() {
-    $('.' + CLASS_PRESENCE_MARKER).fadeOut('fast', function(e) { $(this).remove(); });
+  function clearDocoMarkers()
+  {
+    $('.' + CLASS_PRESENCE_MARKER)
+      .fadeOut('slow', function(e) {
+        $(this).remove();
+      });
   }
 
   // Remove a single doco indicator
-  function removeDocoMarker(id) {
-    $('#' + id + '.' + CLASS_PRESENCE_MARKER).fadeOut('fast', function(e) { $(this).remove(); });
+  function removeDocoMarker(id)
+  {
+    $('#' + PREFIX_ID_MARKER + id)
+      .fadeOut('slow', function(e) {
+        $(this).remove();
+      });
   }
-
-  // Add an observer to the positioning of the cursor
-  // function addPositionObserver($node)
-  // {
-  //   debugLog('addPositionObserver:', $node);
-  //
-  //   // Listen for editing
-  //   var observer = new MutationObserver(function(mutations) {
-  //     mutations.forEach(function(mutationRecord) {
-  //       console.log('style changed!');
-  //       showMarker(mutationRecord.target);
-  //     });
-  //   });
-  //
-  //   var target = $node[0];
-  //   observer.observe(target, { attributes : true, attributeFilter : ['style'] });
-  //
-  //   // Add to positionObservers
-  //   positionObservers.push({observer: observer, target: target});
-  //
-  // }
-  //
-  // // Remove an observer to the positioning of the cursor
-  // function removePositionObserver($node)
-  // {
-  //   debugLog('removePositionObserver:', $node);
-  //
-  //   // Remove from positionObservers and disconnect
-  //   for (var i = 0, l = positionObservers.length, o; i < l; i++)
-  //   {
-  //     o = positionObservers[i];
-  //     if (o.target == $node) {
-  //       debugLog('observer found');
-  //       o.observer.disconnect();
-  //       positionObservers.splice(i, 1);
-  //       break;
-  //     }
-  //   }
-  // }
-  //
-  // // Show marker for collaborative presence
-  // function showMarker(node)
-  // {
-  //   debugLog('showMarker:', node);
-  //
-  //   // Create marker
-  //   var $node = $(node);
-  //   var marker = $(document.createElement('div'))
-  //   .addClass(CLASS_PRESENCE_MARKER);
-  //
-  //   // Calculate vertical position
-  //   var verticalPercent = Math.floor(($node.offset().top / $('body').height()) * 100);
-  //   marker.css({top: verticalPercent + '%'});
-  //
-  //   // Copy node color style
-  //   marker.css({background: $node.css('background-color')});
-  //
-  //   // Add to document and fade out over time
-  //   $('body').append(marker);
-  //   marker.fadeOut(2000, function() {
-  //     $(this).remove();
-  //   });
-  // }
 
 });
