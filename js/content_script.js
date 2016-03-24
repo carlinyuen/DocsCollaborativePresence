@@ -90,7 +90,7 @@ $(function()
       if ($('body').find('#' + id).length <= 0)
       {
         debugLog('remove:', value);
-        removeDocoMarker(id.substr(PREFIX_ID_DOCO.length));
+        removeDocoMarker(PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length));
         return false;
       }
       return true;
@@ -112,7 +112,7 @@ $(function()
       drawDocoMarker($container.css('top').replace("px", "")
         , $container.outerHeight()
         , $doco.css('background-color')
-        , id.substr(PREFIX_ID_DOCO));
+        , PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO));
     });
   }
 
@@ -134,7 +134,7 @@ $(function()
     // Create marker
     var $marker, newlyCreated = false;
     if (id) {
-      $marker = $('body').find('#' + PREFIX_ID_MARKER + id);
+      $marker = $('body').find('#' + id);
     }
     if ($marker.length <= 0)
     {
@@ -179,7 +179,7 @@ $(function()
   // Remove a single doco indicator
   function removeDocoMarker(id)
   {
-    $('#' + PREFIX_ID_MARKER + id)
+    $('#' + id)
       .fadeOut('slow', function(e) {
         $(this).remove();
       });
