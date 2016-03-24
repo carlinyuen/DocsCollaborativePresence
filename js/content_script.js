@@ -9,12 +9,16 @@ $(function()
     , CLASS_KIX_DOCUMENT_ZOOM = 'kix-zoomdocumentplugin-outer'
     , CLASS_KIX_DOCOS_PRESENCE = 'docos-user-presence'
     , CLASS_KIX_DOCOS_CONTAINER = 'docos-anchoreddocoview'
+    , CLASS_KIX_DOCOS_ACTIVE = 'docos-docoview-active'
   	, CLASS_PRESENCE_MARKER = 'dcp-scrollbar-marker'
+  	, CLASS_MARKER_REMOVAL = 'dcp-remove-marker'
     , ID_DOCS_HEADER_CONTROLS = 'docs-chrome'
     , PREFIX_ID_DOCO = 'dcp-'
     , PREFIX_ID_MARKER = 'dcp-marker-'
     , INTERVAL_DOCOS_SWEEPER = 200
     , TIME_ANIMATION_SPEED = 200
+    , OPACITY_MARKER = 0.33
+    , OPACITY_MARKER_ACTIVE = 0.66
     , docosTracker = []
 	;
 
@@ -58,8 +62,9 @@ $(function()
   // Search for docos
   function sweepDocos()
   {
-    // Fetch docos from document
+    // Fetch docos from document & page properties
     var $docos = $(document).find('div.' + CLASS_KIX_DOCOS_PRESENCE);
+    var props = getPageProperties();
 
     // Store docos into tracker
     $.each($docos, function(index, value)
@@ -75,8 +80,12 @@ $(function()
         var ID = uniqueID();
         $doco.attr('id', PREFIX_ID_DOCO + ID);
         var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
-        drawDocoMarker($container.css('top').replace("px", "")
-          , $container.outerHeight()
+        drawDocoMarker(
+          calculateMarkerProperties(
+            $container.css('top').replace("px", ""),
+            $container.outerHeight(),
+            props
+          )
           , $doco.css('background-color')
           , PREFIX_ID_MARKER + ID);
         docosTracker.push(value);
@@ -89,30 +98,46 @@ $(function()
       var id = $(value).attr('id');
       if ($('body').find('#' + id).length <= 0)
       {
-        debugLog('remove:', value);
+        // debugLog('remove:', value);
         removeDocoMarker(PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length));
         return false;
       }
       return true;
     });
 
-    redrawDocoMarkers();
+    redrawDocoMarkers(props);
   }
 
   // Draw doco indicators
-  function redrawDocoMarkers()
+  function redrawDocoMarkers(props)
   {
-    // clearDocoMarkers();
+    if (!props) {
+      props = getPageProperties();
+    }
 
     // Iterate through docos and redraw
-    $.each(docosTracker, function(index, value) {
+    $.each(docosTracker, function(index, value)
+    {
+      // Setup
       var $doco = $(value);
       var id = $doco.attr('id');
       var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
-      drawDocoMarker($container.css('top').replace("px", "")
-        , $container.outerHeight()
-        , $doco.css('background-color')
-        , PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO));
+
+      // Calculate position
+      var markerProps = calculateMarkerProperties(
+        $container.css('top').replace("px", ""),
+        $container.outerHeight(),
+        props
+      );
+      // Mark as active if doco is active
+      markerProps.active = ($container.hasClass(CLASS_KIX_DOCOS_ACTIVE));
+
+      // Redraw the marker
+      drawDocoMarker(
+        markerProps,
+        $doco.css('background-color'),
+        PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length)
+      );
     });
   }
 
@@ -126,10 +151,40 @@ $(function()
     return $marker;
   }
 
-  // Draw a single doco indicator
-  function drawDocoMarker(top, height, color, id)
+  // Get page properties for positioning calculations
+  function getPageProperties()
   {
-    // debugLog("drawDocoMarker:", top, height, color, id);
+    var headerHeight = $('#' + ID_DOCS_HEADER_CONTROLS).height();
+    var pageHeight = $('body').height();
+    return {
+      documentHeight: $('div.' + CLASS_KIX_DOCUMENT_ZOOM).height(),
+      headerHeight: headerHeight,
+      pageHeight: pageHeight,
+      scrollbarHeight: pageHeight - headerHeight,
+    };
+  }
+
+  // Calculate positioning for doco indicator based off page properties
+  function calculateMarkerProperties(top, height, pageProperties)
+  {
+    if (!pageProperties) {
+      pageProperties = getPageProperties();
+    }
+    return {
+      top: ((pageProperties.headerHeight / pageProperties.pageHeight) * 100)   // Account for chrome
+        + (((top / pageProperties.documentHeight)
+              * pageProperties.scrollbarHeight)
+              / pageProperties.pageHeight * 100) + '%',
+      height: (((height / pageProperties.documentHeight)
+                  * pageProperties.scrollbarHeight)
+                  / pageProperties.pageHeight * 100) + '%',
+    };
+  }
+
+  // Draw a single doco indicator
+  function drawDocoMarker(properties, color, id)
+  {
+    // debugLog("drawDocoMarker:", properties, color, id);
 
     // Create marker
     var $marker, newlyCreated = false;
@@ -141,17 +196,16 @@ $(function()
       $marker = createDocoMarker(id);
       newlyCreated = true;
     }
+    else if ($marker.hasClass(CLASS_MARKER_REMOVAL)) {
+      return;   // Marked for removal, do not disturb
+    }
 
     // Calculate vertical position
-    var documentHeight = $('div.' + CLASS_KIX_DOCUMENT_ZOOM).height();
-    var headerHeight = $('#' + ID_DOCS_HEADER_CONTROLS).height();
-    var pageHeight = $('body').height();
-    var scrollbarHeight = pageHeight - headerHeight;
     var css = {   // Set position and height relative to page
-      top: ((headerHeight / pageHeight) * 100)   // Account for chrome
-        + (((top / documentHeight) * scrollbarHeight) / pageHeight * 100) + '%',
-      height: (((height / documentHeight) * scrollbarHeight) / pageHeight * 100) + '%',
-      opacity: 0.5,
+      top: properties.top,
+      height: properties.height,
+      opacity: (properties.active
+        ? OPACITY_MARKER_ACTIVE : OPACITY_MARKER),
     };
     // debugLog("css:", css);
 
@@ -171,7 +225,8 @@ $(function()
   function clearDocoMarkers()
   {
     $('.' + CLASS_PRESENCE_MARKER)
-      .fadeOut('slow', function(e) {
+      .addClass(CLASS_MARKER_REMOVAL)
+      .slideUp('fast', function(e) {
         $(this).remove();
       });
   }
@@ -180,7 +235,8 @@ $(function()
   function removeDocoMarker(id)
   {
     $('#' + id)
-      .fadeOut('slow', function(e) {
+      .addClass(CLASS_MARKER_REMOVAL)
+      .slideUp('fast', function(e) {
         $(this).remove();
       });
   }
