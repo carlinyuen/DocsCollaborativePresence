@@ -52,7 +52,7 @@ $(function()
 
   // Generates unique ID
   function uniqueID() {
-    return PREFIX_ID_DOCO + Math.round(new Date().getTime() * (Math.random() * 100));
+    return Math.round(new Date().getTime() * (Math.random() * 100));
   }
 
   // Search for docos
@@ -73,7 +73,7 @@ $(function()
       else  // Doco hasn't been tracked
       {
         var ID = uniqueID();
-        $doco.attr('id', ID);
+        $doco.attr('id', PREFIX_ID_DOCO + ID);
         var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
         drawDocoMarker($container.css('top').replace("px", "")
           , $container.outerHeight()
