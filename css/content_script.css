@@ -1,0 +1,6 @@
+.dcp-scrollbar-marker {
+	position: fixed;
+	right: 0;
+	height: 2px;
+	width: 12px;
+}

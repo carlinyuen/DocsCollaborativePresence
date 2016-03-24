@@ -1,0 +1,27 @@
+{
+	"EXTENSION_NAME": {
+		"message": "Collaborative Presence for Google Docs™"
+		, "description": "Extension name for the Chrome webstore."
+	}
+
+	,"EXTENSION_SHORTNAME": {
+		"message": "Docs Presence"
+		, "description": "Extension short name for the Chrome webstore (< 12 chars)."
+	}
+
+	, "EXTENSION_TITLE": {
+		"message": "Collaborative Presence for Google Docs™"
+		, "description": "Extension short title."
+	}
+
+	, "EXTENSION_DESCRIPTION": {
+		"message": "See where your collaborators are editing, in real-time!"
+		, "description": "Extension description for the chrome webstore."
+	}
+
+	, "TEMPLATE": {
+		"message": "template"
+		, "description": "Template"
+	}
+
+}

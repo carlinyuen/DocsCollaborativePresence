@@ -1,0 +1,24 @@
+{
+	"name": "__MSG_EXTENSION_NAME__"
+	, "short_name": "__MSG_EXTENSION_SHORTNAME__"
+	, "version": "1.0.0"
+	, "manifest_version": 2
+	, "description": "__MSG_EXTENSION_DESCRIPTION__"
+	, "icons": {
+		"16": "images/icon16.png"
+			, "48": "images/icon48.png"
+			, "128": "images/icon128.png"
+	}
+	, "default_locale": "en"
+	, "content_scripts": [{
+		"matches": [ "*://docs.google.com/*" ]
+		, "css": [ "css/content_script.css" ]
+		, "js": [
+			"js/third_party/jquery-2.1.0.min.js"
+			, "js/constants.js"
+			, "js/content_script.js"
+		]
+		, "run_at": "document_idle"
+	}]
+	, "permissions": [ "*://docs.google.com/*" ]
+}
