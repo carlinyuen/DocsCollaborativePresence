@@ -3,4 +3,5 @@
 	right: 0;
 	height: 2px;
 	width: 12px;
+	pointer-events: none;
 }
