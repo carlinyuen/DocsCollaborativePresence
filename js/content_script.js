@@ -6,7 +6,7 @@ $(function()
 {
   // Variables & Constants
   var CLASS_KIX_COLLABORATIVE_CURSOR = 'kix-cursor'
-    , CLASS_KIX_DOCUMENT_ZOOM = 'kix-zoomdocumentplugin-outer'
+    , CLASS_KIX_DOCUMENT_BACKGROUND = 'kix-paginateddocumentplugin-background'
     , CLASS_KIX_DOCOS_PRESENCE = 'docos-user-presence'
     , CLASS_KIX_DOCOS_CONTAINER = 'docos-anchoreddocoview'
     , CLASS_KIX_DOCOS_DRAFT = 'docos-anchoreddocoview-draft'
@@ -14,9 +14,11 @@ $(function()
   	, CLASS_PRESENCE_MARKER = 'dcp-scrollbar-marker'
   	, CLASS_MARKER_REMOVAL = 'dcp-remove-marker'
     , ID_DOCS_HEADER_CONTROLS = 'docs-chrome'
+    , ID_DOCS_RULER = 'kix-ruler'
     , PREFIX_ID_DOCO = 'dcp-'
     , PREFIX_ID_MARKER = 'dcp-marker-'
     , ATTR_NAME_ID = 'data-id'
+    , HEIGHT_BOTTOM_SCROLLBAR = 12
     , INTERVAL_DOCOS_SWEEPER = 250
     , TIME_ANIMATION_SPEED = 200
     , OPACITY_MARKER = 0.33
@@ -189,13 +191,14 @@ $(function()
   // Get page properties for positioning calculations
   function getPageProperties()
   {
-    var headerHeight = $('#' + ID_DOCS_HEADER_CONTROLS).height();
+    var headerHeight = $('#' + ID_DOCS_HEADER_CONTROLS).height()
+        + $('#' + ID_DOCS_RULER).height();
     var pageHeight = $('body').height();
     return {
-      documentHeight: $('div.' + CLASS_KIX_DOCUMENT_ZOOM).height(),
+      documentHeight: $('div.' + CLASS_KIX_DOCUMENT_BACKGROUND).outerHeight(),
       headerHeight: headerHeight,
       pageHeight: pageHeight,
-      scrollbarHeight: pageHeight - headerHeight,
+      scrollbarHeight: pageHeight - headerHeight - HEIGHT_BOTTOM_SCROLLBAR,
     };
   }
 

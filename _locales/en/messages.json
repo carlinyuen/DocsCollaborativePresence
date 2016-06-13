@@ -1,16 +1,16 @@
 {
 	"EXTENSION_NAME": {
-		"message": "Comment Presence for Google Docs™"
+		"message": "Comment Visualizer for Google Docs™"
 		, "description": "Extension name for the Chrome webstore."
 	}
 
 	,"EXTENSION_SHORTNAME": {
-		"message": "Docs Presence"
+		"message": "Docs Comment Viz"
 		, "description": "Extension short name for the Chrome webstore (< 12 chars)."
 	}
 
 	, "EXTENSION_TITLE": {
-		"message": "Comment Presence for Google Docs™"
+		"message": "Comment Visualizer for Google Docs™"
 		, "description": "Extension short title."
 	}
 
