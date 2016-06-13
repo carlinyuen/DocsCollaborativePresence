@@ -1,6 +1,6 @@
 {
 	"EXTENSION_NAME": {
-		"message": "Collaborative Presence for Google Docs™"
+		"message": "Comment Presence for Google Docs™"
 		, "description": "Extension name for the Chrome webstore."
 	}
 
@@ -10,12 +10,12 @@
 	}
 
 	, "EXTENSION_TITLE": {
-		"message": "Collaborative Presence for Google Docs™"
+		"message": "Comment Presence for Google Docs™"
 		, "description": "Extension short title."
 	}
 
 	, "EXTENSION_DESCRIPTION": {
-		"message": "See where your collaborators are editing, in real-time!"
+		"message": "An easy way to see and navigate between pending comments on your Google Doc."
 		, "description": "Extension description for the chrome webstore."
 	}
 

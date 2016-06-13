@@ -16,12 +16,15 @@ $(function()
     , ID_DOCS_HEADER_CONTROLS = 'docs-chrome'
     , PREFIX_ID_DOCO = 'dcp-'
     , PREFIX_ID_MARKER = 'dcp-marker-'
-    , INTERVAL_DOCOS_SWEEPER = 200
+    , ATTR_NAME_ID = 'data-id'
+    , INTERVAL_DOCOS_SWEEPER = 250
     , TIME_ANIMATION_SPEED = 200
     , OPACITY_MARKER = 0.33
     , OPACITY_MARKER_ACTIVE = 0.66
     , docosTracker = []
     , markerPropsTracker = {}
+    , $document = $(document)
+    , $body = $('body')
 	;
 
   // Initialize
@@ -41,7 +44,7 @@ $(function()
   // Initialize the extension script
   function init()
   {
-    debugLog('Init Docs Collaborative Presence v1.0');
+    debugLog('Init Docs Comment Presence v1.0');
 
     // Add filter function to only select items without parents of a certain class
     $.expr[':'].parents = function(a,i,m){
@@ -70,27 +73,32 @@ $(function()
   function sweepDocos()
   {
     // Fetch docos from document, properties from page
-    var $docos = $(document).find('div.' + CLASS_KIX_DOCOS_PRESENCE)
+    var $docos = $document.find('div.' + CLASS_KIX_DOCOS_PRESENCE)
       .filter(':parents(.' + CLASS_KIX_DOCOS_DRAFT + ')');
     var props = getPageProperties();
 
     // Don't compute more than necessary
+    var $doco, ID, docoID, $container;
     if ($docos.length != docosTracker.length)
     {
       // Store docos into tracker and create indicators
       $.each($docos, function(index, value)
       {
-        var $doco = $(value);
+        $doco = $(value);
         if (docosTracker.includes(value)) {
+          debugLog("already tracked:", value);
           // Do nothing
         } else if ($doco.attr('id')) {
+          debugLog("processed but untracked:", value);
           docosTracker.push(value);   // Shouldn't happen, but doco has been processed before and isn't tracked
         }
         else  // Doco hasn't been tracked
         {
-          var ID = uniqueID();
+          debugLog("untracked:", value);
+          ID = uniqueID();
+          $doco.attr(ATTR_NAME_ID, ID);
           $doco.attr('id', PREFIX_ID_DOCO + ID);
-          var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
+          $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
           drawDocoMarker(
             calculateMarkerProperties(
               $container.css('top').replace("px", ""),
@@ -106,11 +114,13 @@ $(function()
       // Need to get rid of removed docos
       docosTracker = $.grep(docosTracker, function(value)
       {
-        var id = $(value).attr('id');
-        if ($('body').find('#' + id).length <= 0)
+        $doco = $(value);
+        ID = $doco.attr(ATTR_NAME_ID);
+        docoID = $doco.attr('id');
+        if ($body.find('#' + docoID).length <= 0)
         {
           // debugLog('remove:', value);
-          removeDocoMarker(PREFIX_ID_MARKER + id.substr(PREFIX_ID_DOCO.length));
+          removeDocoMarker(PREFIX_ID_MARKER + ID);
           return false;
         }
         return true;
@@ -128,32 +138,40 @@ $(function()
     }
 
     // Iterate through docos and redraw
+    var $doco, ID, markerID, $marker, $container, top, height, markerProps, cachedProps;
     $.each(docosTracker, function(index, value)
     {
       // Setup
-      var $doco = $(value);
-      var id = $doco.attr('id').substr(PREFIX_ID_DOCO.length);
-      var $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
+      $doco = $(value);
+      ID = $doco.attr(ATTR_NAME_ID);
+      markerID = PREFIX_ID_MARKER + ID;
+      $marker = $('#' + markerID);
+      $container = $doco.parents('.' + CLASS_KIX_DOCOS_CONTAINER);
 
       // Only calculate if needed
-      var top = $container.css('top').replace("px", "");
-      var height = $container.outerHeight();
-      var markerProps = markerPropsTracker[id];
-      if (markerProps && markerProps.top == top && markerProps.height == height) {
-        return;
-      } else {  // Store latest state
-        markerPropsTracker[id] = {top: top, height: height};
-      }
-
-      // Calculate position and mark as active if doco is active
+      top = $container.css('top').replace("px", "");
+      height = $container.outerHeight();
       markerProps = calculateMarkerProperties(top, height, props);
+      markerProps.relativeTop = top;
+      markerProps.relativeHeight = height;
       markerProps.active = ($container.hasClass(CLASS_KIX_DOCOS_ACTIVE));
+      cachedProps = markerPropsTracker[ID];
+      if (cachedProps
+          && (markerProps.relativeTop == cachedProps.relativeTop)
+          && (markerProps.relativeHeight == cachedProps.relativeHeight)
+          && (markerProps.top == cachedProps.top)
+          && (markerProps.height == cachedProps.height)
+        ) {
+        return; // Properties set and marker is where it should be
+      } else {  // Store latest state
+        markerPropsTracker[ID] = markerProps;
+      }
 
       // Redraw the marker
       drawDocoMarker(
         markerProps,
         $doco.css('background-color'),
-        PREFIX_ID_MARKER + id
+        markerID
       );
     });
   }
@@ -203,10 +221,10 @@ $(function()
   {
     // debugLog("drawDocoMarker:", properties, color, id);
 
-    // Create marker
+    // Create or find existing marker
     var $marker, newlyCreated = false;
     if (id) {
-      $marker = $('body').find('#' + id);
+      $marker = $body.find('#' + id);
     }
     if ($marker.length <= 0)
     {
@@ -231,17 +249,19 @@ $(function()
     {
       css.background = color;  // Copy node color style
       $marker.css(css);
-      $('body').append($marker).slideDown(TIME_ANIMATION_SPEED);
+      $body.append($marker)
+        .slideDown(TIME_ANIMATION_SPEED);
     }
     else {  // Otherwise only animate height changes
-      $marker.stop(true).animate(css, TIME_ANIMATION_SPEED);
+      $marker.stop(true)
+        .animate(css, TIME_ANIMATION_SPEED);
     }
   }
 
   // Clear all doco indicators
   function clearDocoMarkers()
   {
-    $('.' + CLASS_PRESENCE_MARKER)
+    $('.' + CLASS_PRESENCE_MARKER).stop(true)
       .addClass(CLASS_MARKER_REMOVAL)
       .slideUp('fast', function(e) {
         $(this).remove();
@@ -251,7 +271,7 @@ $(function()
   // Remove a single doco indicator
   function removeDocoMarker(id)
   {
-    $('#' + id)
+    $('#' + id).stop(true)
       .addClass(CLASS_MARKER_REMOVAL)
       .slideUp('fast', function(e) {
         $(this).remove();
